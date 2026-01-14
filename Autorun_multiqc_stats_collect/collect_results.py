@@ -12,8 +12,6 @@ except ImportError:
     print("Installing required package 'pyEager'", file=sys.stderr)
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pyEager"])
     import pyEager
-import pandas as pd
-import numpy as np
 
 try:
     import pyPandoraHelper as pH
