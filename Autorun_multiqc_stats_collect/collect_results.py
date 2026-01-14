@@ -325,61 +325,7 @@ def read_main_id_list(file_path: str) -> Dict[str, str]:
             main_id_dict[fields[0]] = fields[1]
     return main_id_dict
 
-
-def main():
-    ## Column order same as old script.
-    output_columns = {
-        "Covered_SNPs_on_1240K": "snps_covered",
-        "Total_SNPs_on_1240K": "snps_total",
-        "Nr_of_input_reads": "Samtools Flagstat (pre-samtools filter)_mqc-generalstats-samtools_flagstat_pre_samtools_filter-flagstat_total",
-        "Nr_of_mapped_reads": "Samtools Flagstat (pre-samtools filter)_mqc-generalstats-samtools_flagstat_pre_samtools_filter-mapped_passed",
-        "Nr_of_input_reads_over_30bp": "Samtools Flagstat (post-samtools filter)_mqc-generalstats-samtools_flagstat_post_samtools_filter-flagstat_total",
-        "%_Endogenous_DNA": "endogenous",
-        "Nr_of_mapped_reads_over_30bp": "Samtools Flagstat (post-samtools filter)_mqc-generalstats-samtools_flagstat_post_samtools_filter-mapped_passed",
-        "%_Endogenous_DNA_over_30bp": "endogenous_post",
-        "Proportion_of_duplicate_reads": "Picard_mqc-generalstats-picard-PERCENT_DUPLICATION",
-        "Damage_5'_bp1": "dmg_5p_1",
-        "Damage_5'_bp2": "dmg_5p_2",
-        "Damage_3'_bp1": "dmg_3p_1",
-        "Damage_3'_bp2": "dmg_3p_2",
-        "Mean_read_length": "mean_read_length",
-        "Median_read_length": "median_read_length",
-        "Nr_mtDNA_reads": "mtnucratio_mqc-generalstats-mtnucratio-mtreads",
-        "Mean_mt_coverage": "mtnucratio_mqc-generalstats-mtnucratio-mt_cov_avg",
-        "mt_to_nuclear_read_ratio": "mtnucratio_mqc-generalstats-mtnucratio-mt_nuc_ratio",
-        "Nr_of_unique_mapped_reads": "QualiMap_mqc-generalstats-qualimap-mapped_reads",
-        "Mean_fold_coverage": "QualiMap_mqc-generalstats-qualimap-mean_coverage",
-        "Median_fold_coverage": "QualiMap_mqc-generalstats-qualimap-median_coverage",
-        "%_of_genome_covered_by_at_least_1_read": "QualiMap_mqc-generalstats-qualimap-1_x_pc",
-        "%_of_genome_covered_by_at_least_2_reads": "QualiMap_mqc-generalstats-qualimap-2_x_pc",
-        "%_of_genome_covered_by_at_least_3_reads": "QualiMap_mqc-generalstats-qualimap-3_x_pc",
-        "%_of_genome_covered_by_at_least_4_reads": "QualiMap_mqc-generalstats-qualimap-4_x_pc",
-        "%_of_genome_covered_by_at_least_5_reads": "QualiMap_mqc-generalstats-qualimap-5_x_pc",
-        "%_GC_of_unique_reads": "QualiMap_mqc-generalstats-qualimap-avg_gc",
-        "Read_length_std_dev": "read_length_std_dev",
-        "Mean_fold_coverage_on_nuclear_genome": "mtnucratio_mqc-generalstats-mtnucratio-nuc_cov_avg",
-        "Nr_nuclearDNA_reads": "mtnucratio_mqc-generalstats-mtnucratio-nucreads",
-        # "%_of_mapped_reads": "QualiMap_mqc-generalstats-qualimap-percentage_aligned",
-        "Nr_of_reads_total": "QualiMap_mqc-generalstats-qualimap-total_reads",
-        "Qualimap_General_error_rate": "QualiMap_mqc-generalstats-qualimap-general_error_rate",
-        "StdErr_of_X_relative_coverage": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateErrX",
-        "StdErr_of_Y_relative_coverage": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateErrY",
-        "Relative_coverage_on_X_chromosome": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateX",
-        "Relative_coverage_on_Y_chromosome": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateY",
-        "Nr_SNPs_used_in_contamination_estimation": "nuc_cont_snps",
-        "Nuclear_contamination_M1_ML": "nuc_cont_m1_ml_est",
-        "Nuclear_contamination_M1_ML_Error": "nuc_cont_m1_ml_se",
-        "Nuclear_contamination_M1_MOM": "nuc_cont_m1_mom_est",
-        "Nuclear_contamination_M1_MOM_Error": "nuc_cont_m1_mom_se",
-        "Nuclear_contamination_M2_ML": "nuc_cont_m2_ml_est",
-        "Nuclear_contamination_M2_ML_Error": "nuc_cont_m2_ml_se",
-        "Nuclear_contamination_M2_MOM": "nuc_cont_m2_mom_est",
-        "Nuclear_contamination_M2_MOM_Error": "nuc_cont_m2_mom_se",
-        "UDG_Treatment": "UDG_Treatment",
-        "Strandedness": "Strandedness",
-        "Data_type": "Data_type",
-    }
-
+def get_args(argv=None):
     parser = argparse.ArgumentParser(
         description="This is a script for collecting a batch of library-level multiqc stats for individuals for which capture or shotgun data exists."
     )
@@ -436,7 +382,64 @@ def main():
         version="%(prog)s {}".format(VERSION),
         help="Print the version and exit.",
     )
-    args = parser.parse_args()
+    return (parser, parser.parse_args(argv))
+
+def main():
+    ## Parse arguments
+    parser,args = get_args(sys.argv[1:])
+
+    ## Column order same as old script.
+    output_columns = {
+        "Covered_SNPs_on_1240K": "snps_covered",
+        "Total_SNPs_on_1240K": "snps_total",
+        "Nr_of_input_reads": "Samtools Flagstat (pre-samtools filter)_mqc-generalstats-samtools_flagstat_pre_samtools_filter-flagstat_total",
+        "Nr_of_mapped_reads": "Samtools Flagstat (pre-samtools filter)_mqc-generalstats-samtools_flagstat_pre_samtools_filter-mapped_passed",
+        "Nr_of_input_reads_over_30bp": "Samtools Flagstat (post-samtools filter)_mqc-generalstats-samtools_flagstat_post_samtools_filter-flagstat_total",
+        "%_Endogenous_DNA": "endogenous",
+        "Nr_of_mapped_reads_over_30bp": "Samtools Flagstat (post-samtools filter)_mqc-generalstats-samtools_flagstat_post_samtools_filter-mapped_passed",
+        "%_Endogenous_DNA_over_30bp": "endogenous_post",
+        "Proportion_of_duplicate_reads": "Picard_mqc-generalstats-picard-PERCENT_DUPLICATION",
+        "Damage_5'_bp1": "dmg_5p_1",
+        "Damage_5'_bp2": "dmg_5p_2",
+        "Damage_3'_bp1": "dmg_3p_1",
+        "Damage_3'_bp2": "dmg_3p_2",
+        "Mean_read_length": "mean_read_length",
+        "Median_read_length": "median_read_length",
+        "Nr_mtDNA_reads": "mtnucratio_mqc-generalstats-mtnucratio-mtreads",
+        "Mean_mt_coverage": "mtnucratio_mqc-generalstats-mtnucratio-mt_cov_avg",
+        "mt_to_nuclear_read_ratio": "mtnucratio_mqc-generalstats-mtnucratio-mt_nuc_ratio",
+        "Nr_of_unique_mapped_reads": "QualiMap_mqc-generalstats-qualimap-mapped_reads",
+        "Mean_fold_coverage": "QualiMap_mqc-generalstats-qualimap-mean_coverage",
+        "Median_fold_coverage": "QualiMap_mqc-generalstats-qualimap-median_coverage",
+        "%_of_genome_covered_by_at_least_1_read": "QualiMap_mqc-generalstats-qualimap-1_x_pc",
+        "%_of_genome_covered_by_at_least_2_reads": "QualiMap_mqc-generalstats-qualimap-2_x_pc",
+        "%_of_genome_covered_by_at_least_3_reads": "QualiMap_mqc-generalstats-qualimap-3_x_pc",
+        "%_of_genome_covered_by_at_least_4_reads": "QualiMap_mqc-generalstats-qualimap-4_x_pc",
+        "%_of_genome_covered_by_at_least_5_reads": "QualiMap_mqc-generalstats-qualimap-5_x_pc",
+        "%_GC_of_unique_reads": "QualiMap_mqc-generalstats-qualimap-avg_gc",
+        "Read_length_std_dev": "read_length_std_dev",
+        "Mean_fold_coverage_on_nuclear_genome": "mtnucratio_mqc-generalstats-mtnucratio-nuc_cov_avg",
+        "Nr_nuclearDNA_reads": "mtnucratio_mqc-generalstats-mtnucratio-nucreads",
+        # "%_of_mapped_reads": "QualiMap_mqc-generalstats-qualimap-percentage_aligned",
+        "Nr_of_reads_total": "QualiMap_mqc-generalstats-qualimap-total_reads",
+        "Qualimap_General_error_rate": "QualiMap_mqc-generalstats-qualimap-general_error_rate",
+        "StdErr_of_X_relative_coverage": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateErrX",
+        "StdErr_of_Y_relative_coverage": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateErrY",
+        "Relative_coverage_on_X_chromosome": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateX",
+        "Relative_coverage_on_Y_chromosome": "SexDetErrmine_mqc-generalstats-sexdeterrmine-RateY",
+        "Nr_SNPs_used_in_contamination_estimation": "nuc_cont_snps",
+        "Nuclear_contamination_M1_ML": "nuc_cont_m1_ml_est",
+        "Nuclear_contamination_M1_ML_Error": "nuc_cont_m1_ml_se",
+        "Nuclear_contamination_M1_MOM": "nuc_cont_m1_mom_est",
+        "Nuclear_contamination_M1_MOM_Error": "nuc_cont_m1_mom_se",
+        "Nuclear_contamination_M2_ML": "nuc_cont_m2_ml_est",
+        "Nuclear_contamination_M2_ML_Error": "nuc_cont_m2_ml_se",
+        "Nuclear_contamination_M2_MOM": "nuc_cont_m2_mom_est",
+        "Nuclear_contamination_M2_MOM_Error": "nuc_cont_m2_mom_se",
+        "UDG_Treatment": "UDG_Treatment",
+        "Strandedness": "Strandedness",
+        "Data_type": "Data_type",
+    }
 
     ## Print version info to stderr on runtime
     print("## {}: {}".format(parser.prog, VERSION), file=sys.stderr)
