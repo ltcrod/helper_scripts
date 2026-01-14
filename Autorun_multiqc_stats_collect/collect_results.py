@@ -470,18 +470,15 @@ def main():
         mqc_data = "{}/{}/{}/{}/multiqc/multiqc_data/multiqc_data.json".format(
             args.root_output_path, args.analysis_type, pH.get_site_id(ind), ind
         )
-
         ## Infer path to MQC report
         report_path = mqc_data.replace(
             "multiqc_data/multiqc_data.json", "multiqc_report.html"
         )
-
         ## Infer path to nf-core/eager input TSV
         ##  Making the assumption that the eager_inputs and eager_outputs are in the same directory as the root_output_path
         tsv_path = "{}/../eager_inputs/{}/{}/{}/{}.tsv".format(
             args.root_output_path, args.analysis_type, pH.get_site_id(ind), ind, ind
         )
-
         ## Get stats
         try:
             ## First, ensure the MQC data are consistent with the report
@@ -521,15 +518,28 @@ def main():
                 "mapDamage_mqc-generalstats-mapdamage-mapdamage_3_Prime1"
                 in collected_stats[library]
             ):
-                md_results_dirs.append(
-                    "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
-                        args.root_output_path,
-                        args.analysis_type,
-                        pH.get_site_id(library),
-                        pH.get_ind_id(library),
-                        library,
+                if pH.get_ind_id(library) in main_id_dict.keys():
+                    ## If the library belongs to an individual in the main ID list, collect its mapdamage results from within the main individual's results dir.
+                    md_results_dirs.append(
+                        "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
+                            args.root_output_path,
+                            args.analysis_type,
+                            pH.get_site_id(main_id_dict[pH.get_ind_id(library)]),
+                            main_id_dict[pH.get_ind_id(library)],
+                            library,
+                        )
                     )
-                )
+                else:
+                    ## Otherwise, collect from the individual's own results dir.
+                    md_results_dirs.append(
+                        "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
+                            args.root_output_path,
+                            args.analysis_type,
+                            pH.get_site_id(library),
+                            pH.get_ind_id(library),
+                            library,
+                        )
+                    )
         except FileNotFoundError:
             print(
                 "Warning: Could not generate read length distribution information for library: {} ".format(
