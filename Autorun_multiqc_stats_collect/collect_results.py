@@ -5,6 +5,7 @@ import sys
 import os
 import subprocess
 from typing import List, Dict, Union
+
 try:
     import pyEager
 except ImportError:
@@ -13,16 +14,28 @@ except ImportError:
     import pyEager
 import pandas as pd
 import numpy as np
+
 try:
     import pyPandoraHelper as pH
 except ImportError:
     print("Installing required package 'pyPandoraHelper'", file=sys.stderr)
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "/mnt/archgen/tools/helper_scripts/py_helpers/"])
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "/mnt/archgen/tools/helper_scripts/py_helpers/",
+        ]
+    )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.1"
+VERSION = "1.6.2"
 
-def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : Dict[str,str] = None):
+
+def get_individual_library_stats(
+    mqc_data: str, data_type: str, main_id_dict: Dict[str, str] = None
+):
     ## Read json file, and combine relevant sample and library stats into a dictionary
     with open(mqc_data, "r") as json_file:
         data = json.load(json_file)
@@ -72,8 +85,8 @@ def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : 
         ## Get the sample ID from the library ID, to ensure ss libs get ss sample stats
         ## Use update instead of union to work with python <3.9
         compiled_results = {}
-        ind_id           = pH.get_ind_id(library, keep_ss_suffix=True)
-        ind_id_no_ss     = pH.get_ind_id(library, keep_ss_suffix=False)
+        ind_id = pH.get_ind_id(library, keep_ss_suffix=True)
+        ind_id_no_ss = pH.get_ind_id(library, keep_ss_suffix=False)
         if ind_id.endswith("_ss"):
             ind_suffix = "_ss"
         else:
@@ -82,11 +95,11 @@ def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : 
             compiled_results.update(sample_stats[ind_id])
         except KeyError as e:
             if ind_id_no_ss in main_id_dict.keys():
-                compiled_results.update(sample_stats[main_id_dict[ind_id_no_ss]+ind_suffix])
+                compiled_results.update(
+                    sample_stats[main_id_dict[ind_id_no_ss] + ind_suffix]
+                )
             else:
-                raise Exception(
-                    f"Unknown sample for library: {library}."
-                ) from e
+                raise Exception(f"Unknown sample for library: {library}.") from e
         compiled_results.update(library_stats[library])
         results[library] = compiled_results
         ## Old implementation using dict union.
@@ -230,43 +243,57 @@ def files_are_consistent(mqc_data, mqc_html, skip_check=False):
         return skip_check
     return True
 
-def read_eager_tsv(file_path) -> map:
-    '''
-    Reads the contents of an eager input TSV into a dictionary with the column names as keys.
-    '''
-    l = file_path.readlines()
-    headers = l[0].strip().split('\t')
-    return map(lambda row: dict(zip(headers, row.split('\t'))), l[1:])
 
-def get_eager_tsv_data(path: str ='', columns: List[str] = []) -> Union[Dict[str, Dict[str, str]], None]:
-    '''
+def read_eager_tsv(file_path) -> map:
+    """
+    Reads the contents of an eager input TSV into a dictionary with the column names as keys.
+    """
+    l = file_path.readlines()
+    headers = l[0].strip().split("\t")
+    return map(lambda row: dict(zip(headers, row.split("\t"))), l[1:])
+
+
+def get_eager_tsv_data(
+    path: str = "", columns: List[str] = []
+) -> Union[Dict[str, Dict[str, str]], None]:
+    """
     Reads the contents of an eager input TSV and returns a dictionary with the Library_ID as key a
     dictionary containing the requested column and values as values.
-    '''
+    """
     ## Check that path is a file and exists
     if not os.path.isfile(path):
         print(f"File {path} not found. Exiting.")
         return None
-    
+
     ## Remove any column names that are not allowed
     ##  Note: Lane, Colour_Chemistry, SeqType columns do not make much sense to collect when dealing with library-level results.
-    allowed_column_requests = ["Sample_Name", "Lane", "Colour_Chemistry", "SeqType", "Organism", "Strandedness", 
-                        "UDG_Treatment", "R1", "R2", "BAM"]
+    allowed_column_requests = [
+        "Sample_Name",
+        "Lane",
+        "Colour_Chemistry",
+        "SeqType",
+        "Organism",
+        "Strandedness",
+        "UDG_Treatment",
+        "R1",
+        "R2",
+        "BAM",
+    ]
     collect_me = []
     for col in columns:
         if col not in allowed_column_requests:
             print(f"Column name {col} is not allowed. Skipping.")
         else:
             collect_me.append(col)
-    
+
     ## If no columns were requested, return None
     if not collect_me:
         print("No columns were requested. Exiting.")
         return None
-    
+
     else:
         collected_library_stats = {}
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             for row in read_eager_tsv(f):
                 row_results = {}
                 for col in collect_me:
@@ -275,27 +302,29 @@ def get_eager_tsv_data(path: str ='', columns: List[str] = []) -> Union[Dict[str
                 collected_library_stats[row["Library_ID"]] = row_results
         return collected_library_stats
 
+
 def read_main_id_list(file_path: str) -> Dict[str, str]:
-    '''
+    """
     Reads a file with a header and two columns, where the first column is the Pandora Full individual ID and the second column is the Pandora Main individual ID.
-    '''
+    """
     if not os.path.isfile(file_path):
         print(f"File {file_path} not found. Exiting.")
         return None
     if not os.path.exists(file_path):
         print(f"File {file_path} does not exist. Exiting.")
         return None
-    
+
     main_id_dict = {}
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
             if line.startswith("Full_Individual_Id\tMain_Individual_Id"):
                 continue
-            fields = line.strip().split('\t')
+            fields = line.strip().split("\t")
             main_id_dict[fields[0]] = fields[1]
     return main_id_dict
+
 
 def main():
     ## Column order same as old script.
@@ -370,7 +399,7 @@ def main():
     parser.add_argument(
         "-o",
         "--output",
-        help="Output file with a list of individuals for which capture or shotgun data exists.",
+        help="Where the collected results will be saved.",
         required=True,
     )
     parser.add_argument(
@@ -423,7 +452,8 @@ def main():
     with open(args.input, "r") as f:
         individuals = [pH._remove_suffix(_) for _ in f.read().splitlines()]
         print(
-            "Found {} individuals in input file.".format(len(individuals)), file=sys.stderr
+            "Found {} individuals in input file.".format(len(individuals)),
+            file=sys.stderr,
         )
 
     ## Read list of main IDs
@@ -453,9 +483,15 @@ def main():
         try:
             ## First, ensure the MQC data are consistent with the report
             if files_are_consistent(mqc_data, report_path, args.skip_check):
-                collected_stats.update(get_individual_library_stats(mqc_data, args.analysis_type, main_id_dict))
+                collected_stats.update(
+                    get_individual_library_stats(
+                        mqc_data, args.analysis_type, main_id_dict
+                    )
+                )
                 ## Read in eager input TSV data and add to the collected stats
-                tsv_dat = get_eager_tsv_data(tsv_path, ["UDG_Treatment", "Strandedness"])
+                tsv_dat = get_eager_tsv_data(
+                    tsv_path, ["UDG_Treatment", "Strandedness"]
+                )
                 for library in tsv_dat:
                     collected_stats[library].update(tsv_dat[library])
             else:
@@ -473,34 +509,57 @@ def main():
             skip_count += 1
             continue
         print("Collected stats for individual {}.".format(ind), file=sys.stderr)
-    
+
     ## Collect mapdamage results where needed, and include read length distribution info in the output
     md_results_dirs = []
     for library in collected_stats:
         try:
-            if 'mapDamage_mqc-generalstats-mapdamage-mapdamage_3_Prime1' in collected_stats[library]:
+            if (
+                "mapDamage_mqc-generalstats-mapdamage-mapdamage_3_Prime1"
+                in collected_stats[library]
+            ):
                 md_results_dirs.append(
-                    '{}/{}/{}/{}/mapdamage/results_{}_rmdup'.format(
+                    "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
                         args.root_output_path,
                         args.analysis_type,
                         pH.get_site_id(library),
                         pH.get_ind_id(library),
-                        library
-                        )
+                        library,
                     )
+                )
         except FileNotFoundError:
-            print("Warning: Could not generate read length distribution information for library: {} ".format(library), file=sys.stderr)
+            print(
+                "Warning: Could not generate read length distribution information for library: {} ".format(
+                    library
+                ),
+                file=sys.stderr,
+            )
             continue
     md_results = pyEager.collect_mapdamage_results(md_results_dirs)
     for result_folder_name in md_results:
         try:
             ## Take the basename of the file, then remove "results_" and "_rmdup" to get the library name
-            library = result_folder_name.split('/')[-1].replace("_rmdup", "").replace("results_", "")
-            collected_stats[library]['mean_read_length']    = md_results[result_folder_name]['summary_stats']['mean_readlength'].iloc[0]
-            collected_stats[library]['median_read_length']  = md_results[result_folder_name]['summary_stats']['median'].iloc[0]
-            collected_stats[library]['read_length_std_dev'] = md_results[result_folder_name]['summary_stats']['std'].iloc[0]
+            library = (
+                result_folder_name.split("/")[-1]
+                .replace("_rmdup", "")
+                .replace("results_", "")
+            )
+            collected_stats[library]["mean_read_length"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["mean_readlength"].iloc[0]
+            collected_stats[library]["median_read_length"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["median"].iloc[0]
+            collected_stats[library]["read_length_std_dev"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["std"].iloc[0]
         except KeyError:
-            print("Warning: Could not incorporate read length distribution information for library: {} ".format(library), file=sys.stderr)
+            print(
+                "Warning: Could not incorporate read length distribution information for library: {} ".format(
+                    library
+                ),
+                file=sys.stderr,
+            )
             continue
 
     ## Print number of skipped individuals to stderr if any
@@ -546,6 +605,7 @@ def main():
             f"## Command: {parser.prog} -i {args.input} -o {args.output} -a {args.analysis_type}{flags}",
             file=f,
         )
+
 
 if __name__ == "__main__":
     main()
