@@ -323,6 +323,7 @@ def read_main_id_list(file_path: str) -> Dict[str, str]:
             main_id_dict[fields[0]] = fields[1]
     return main_id_dict
 
+
 def get_args(argv=None):
     parser = argparse.ArgumentParser(
         description="This is a script for collecting a batch of library-level multiqc stats for individuals for which capture or shotgun data exists."
@@ -382,9 +383,10 @@ def get_args(argv=None):
     )
     return (parser, parser.parse_args(argv))
 
+
 def main():
     ## Parse arguments
-    parser,args = get_args(sys.argv[1:])
+    parser, args = get_args(sys.argv[1:])
 
     ## Column order same as old script.
     output_columns = {
