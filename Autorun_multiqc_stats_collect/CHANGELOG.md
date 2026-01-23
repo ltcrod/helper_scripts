@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed an issue when pulling mapdamage results for libraries with a provided Main_Individual_Id. Results were being pulled from the Full_Individual_Id results, instead of the Main_Individual_Id results.
+- The script now throws a warning when mapdamage results for a library with a provided Main_Individual_Id cannot be found in the Main_Id's result folders, prompting the user to talk with Thiseas to reprocess the data if needed. The existing results for that Main_Id are still be collected.
 
 ### Removed
 

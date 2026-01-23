@@ -4,6 +4,8 @@ import argparse
 import sys
 import os
 import subprocess
+import textwrap
+import warnings
 from typing import List, Dict, Union
 
 try:
@@ -519,16 +521,31 @@ def main():
                 in collected_stats[library]
             ):
                 if pH.get_ind_id(library) in main_id_dict.keys():
-                    ## If the library belongs to an individual in the main ID list, collect its mapdamage results from within the main individual's results dir.
-                    md_results_dirs.append(
-                        "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
-                            args.root_output_path,
-                            args.analysis_type,
-                            pH.get_site_id(main_id_dict[pH.get_ind_id(library)]),
-                            main_id_dict[pH.get_ind_id(library)],
-                            library,
-                        )
+                    md_fn = "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
+                        args.root_output_path,
+                        args.analysis_type,
+                        pH.get_site_id(main_id_dict[pH.get_ind_id(library)]),
+                        main_id_dict[pH.get_ind_id(library)],
+                        library,
                     )
+                    ## If the Main ID was added but the data has not been reprocessed with it, the mapdamage results will not exist in the main Id folder.
+                    ##  In that case, print a clear exception explaining the issue and asking that Thiseas gets contacted.
+                    if not os.path.exists(md_fn):
+                        warnings.warn(
+                            textwrap.indent(
+                                textwrap.dedent(
+                                    f"""
+                                    Mapdamage results for library {library} could not be found in the expected location: {md_fn}/. 
+                                    This likely means the data for individual {main_id_dict[pH.get_ind_id(library)]} needs to be reprocessed to include data filed under individual {pH.get_ind_id(library)}.
+                                    Please ask Thiseas to update the Autorun_eager results, if needed.
+                                    The existing results for individual {main_id_dict[pH.get_ind_id(library)]} will still be collected."""
+                                ),
+                                "    ",
+                            )
+                        )
+                        continue
+                    ## If the library belongs to an individual in the main ID list, collect its mapdamage results from within the main individual's results dir.
+                    md_results_dirs.append(md_fn)
                 else:
                     ## Otherwise, collect from the individual's own results dir.
                     md_results_dirs.append(
