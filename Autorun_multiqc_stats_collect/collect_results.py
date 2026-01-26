@@ -4,25 +4,38 @@ import argparse
 import sys
 import os
 import subprocess
+import textwrap
+import warnings
 from typing import List, Dict, Union
+
 try:
     import pyEager
 except ImportError:
     print("Installing required package 'pyEager'", file=sys.stderr)
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pyEager"])
     import pyEager
-import pandas as pd
-import numpy as np
+
 try:
     import pyPandoraHelper as pH
 except ImportError:
     print("Installing required package 'pyPandoraHelper'", file=sys.stderr)
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "/mnt/archgen/tools/helper_scripts/py_helpers/"])
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "/mnt/archgen/tools/helper_scripts/py_helpers/",
+        ]
+    )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.1"
+VERSION = "1.6.2"
 
-def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : Dict[str,str] = None):
+
+def get_individual_library_stats(
+    mqc_data: str, data_type: str, main_id_dict: Dict[str, str] = None
+):
     ## Read json file, and combine relevant sample and library stats into a dictionary
     with open(mqc_data, "r") as json_file:
         data = json.load(json_file)
@@ -72,8 +85,8 @@ def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : 
         ## Get the sample ID from the library ID, to ensure ss libs get ss sample stats
         ## Use update instead of union to work with python <3.9
         compiled_results = {}
-        ind_id           = pH.get_ind_id(library, keep_ss_suffix=True)
-        ind_id_no_ss     = pH.get_ind_id(library, keep_ss_suffix=False)
+        ind_id = pH.get_ind_id(library, keep_ss_suffix=True)
+        ind_id_no_ss = pH.get_ind_id(library, keep_ss_suffix=False)
         if ind_id.endswith("_ss"):
             ind_suffix = "_ss"
         else:
@@ -82,11 +95,11 @@ def get_individual_library_stats(mqc_data : str, data_type: str, main_id_dict : 
             compiled_results.update(sample_stats[ind_id])
         except KeyError as e:
             if ind_id_no_ss in main_id_dict.keys():
-                compiled_results.update(sample_stats[main_id_dict[ind_id_no_ss]+ind_suffix])
+                compiled_results.update(
+                    sample_stats[main_id_dict[ind_id_no_ss] + ind_suffix]
+                )
             else:
-                raise Exception(
-                    f"Unknown sample for library: {library}."
-                ) from e
+                raise Exception(f"Unknown sample for library: {library}.") from e
         compiled_results.update(library_stats[library])
         results[library] = compiled_results
         ## Old implementation using dict union.
@@ -230,43 +243,57 @@ def files_are_consistent(mqc_data, mqc_html, skip_check=False):
         return skip_check
     return True
 
-def read_eager_tsv(file_path) -> map:
-    '''
-    Reads the contents of an eager input TSV into a dictionary with the column names as keys.
-    '''
-    l = file_path.readlines()
-    headers = l[0].strip().split('\t')
-    return map(lambda row: dict(zip(headers, row.split('\t'))), l[1:])
 
-def get_eager_tsv_data(path: str ='', columns: List[str] = []) -> Union[Dict[str, Dict[str, str]], None]:
-    '''
+def read_eager_tsv(file_path) -> map:
+    """
+    Reads the contents of an eager input TSV into a dictionary with the column names as keys.
+    """
+    l = file_path.readlines()
+    headers = l[0].strip().split("\t")
+    return map(lambda row: dict(zip(headers, row.split("\t"))), l[1:])
+
+
+def get_eager_tsv_data(
+    path: str = "", columns: List[str] = []
+) -> Union[Dict[str, Dict[str, str]], None]:
+    """
     Reads the contents of an eager input TSV and returns a dictionary with the Library_ID as key a
     dictionary containing the requested column and values as values.
-    '''
+    """
     ## Check that path is a file and exists
     if not os.path.isfile(path):
         print(f"File {path} not found. Exiting.")
         return None
-    
+
     ## Remove any column names that are not allowed
     ##  Note: Lane, Colour_Chemistry, SeqType columns do not make much sense to collect when dealing with library-level results.
-    allowed_column_requests = ["Sample_Name", "Lane", "Colour_Chemistry", "SeqType", "Organism", "Strandedness", 
-                        "UDG_Treatment", "R1", "R2", "BAM"]
+    allowed_column_requests = [
+        "Sample_Name",
+        "Lane",
+        "Colour_Chemistry",
+        "SeqType",
+        "Organism",
+        "Strandedness",
+        "UDG_Treatment",
+        "R1",
+        "R2",
+        "BAM",
+    ]
     collect_me = []
     for col in columns:
         if col not in allowed_column_requests:
             print(f"Column name {col} is not allowed. Skipping.")
         else:
             collect_me.append(col)
-    
+
     ## If no columns were requested, return None
     if not collect_me:
         print("No columns were requested. Exiting.")
         return None
-    
+
     else:
         collected_library_stats = {}
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             for row in read_eager_tsv(f):
                 row_results = {}
                 for col in collect_me:
@@ -275,29 +302,94 @@ def get_eager_tsv_data(path: str ='', columns: List[str] = []) -> Union[Dict[str
                 collected_library_stats[row["Library_ID"]] = row_results
         return collected_library_stats
 
+
 def read_main_id_list(file_path: str) -> Dict[str, str]:
-    '''
+    """
     Reads a file with a header and two columns, where the first column is the Pandora Full individual ID and the second column is the Pandora Main individual ID.
-    '''
+    """
     if not os.path.isfile(file_path):
         print(f"File {file_path} not found. Exiting.")
         return None
     if not os.path.exists(file_path):
         print(f"File {file_path} does not exist. Exiting.")
         return None
-    
+
     main_id_dict = {}
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
             if line.startswith("Full_Individual_Id\tMain_Individual_Id"):
                 continue
-            fields = line.strip().split('\t')
+            fields = line.strip().split("\t")
             main_id_dict[fields[0]] = fields[1]
     return main_id_dict
 
+
+def get_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="This is a script for collecting a batch of library-level multiqc stats for individuals for which capture or shotgun data exists."
+    )
+    parser.add_argument(
+        "-r",
+        "--root_output_path",
+        help="The root directory where the eager output lies. Within this directory there should be the structure <analysis_type>/<site_id>/<individual_id>/*.",
+        required=False,
+        default="/mnt/archgen/Autorun_eager/eager_outputs/",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        help="Input file with a list of individuals for which capture or shotgun data exists.",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Where the collected results will be saved.",
+        required=True,
+    )
+    parser.add_argument(
+        "-a",
+        "--analysis_type",
+        help="Analysis type: capture or shotgun. Options are: SG, TF, TM, RP, RM, IM, YC. Defaults to TF.",
+        default="TF",
+        choices=["SG", "TF", "TM", "RP", "RM", "IM", "YC"],
+    )
+    parser.add_argument(
+        "--skip_check",
+        help="By default, results from runs where the consistency of the MultiQC output files cannot be verified will be skipped. Use this flag to disable this behaviour. Only recommended if you know why the check failed to begin with.",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--main_id_list",
+        metavar="FILE",
+        help="A file with two columns, where the first column is the Pandora Full individual ID and the second column is the Pandora Main individual ID. This is used to map Full IDs to Main IDs.",
+        default="/mnt/archgen/tools/helper_scripts/assets/pandora_tables/pandora_main_ind_id_list.txt",
+        required=False,
+    )
+    parser.add_argument(
+        "-H",
+        "--header",
+        help="Use human-readable header, instead of original MultiQC table header.",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s {}".format(VERSION),
+        help="Print the version and exit.",
+    )
+    return (parser, parser.parse_args(argv))
+
+
 def main():
+    ## Parse arguments
+    parser, args = get_args(sys.argv[1:])
+
     ## Column order same as old script.
     output_columns = {
         "Covered_SNPs_on_1240K": "snps_covered",
@@ -351,64 +443,6 @@ def main():
         "Data_type": "Data_type",
     }
 
-    parser = argparse.ArgumentParser(
-        description="This is a script for collecting a batch of library-level multiqc stats for individuals for which capture or shotgun data exists."
-    )
-    parser.add_argument(
-        "-r",
-        "--root_output_path",
-        help="The root directory where the eager output lies. Within this directory there should be the structure <analysis_type>/<site_id>/<individual_id>/*.",
-        required=False,
-        default="/mnt/archgen/Autorun_eager/eager_outputs/",
-    )
-    parser.add_argument(
-        "-i",
-        "--input",
-        help="Input file with a list of individuals for which capture or shotgun data exists.",
-        required=True,
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="Output file with a list of individuals for which capture or shotgun data exists.",
-        required=True,
-    )
-    parser.add_argument(
-        "-a",
-        "--analysis_type",
-        help="Analysis type: capture or shotgun. Options are: SG, TF, TM, RP, RM, IM, YC. Defaults to TF.",
-        default="TF",
-        choices=["SG", "TF", "TM", "RP", "RM", "IM", "YC"],
-    )
-    parser.add_argument(
-        "--skip_check",
-        help="By default, results from runs where the consistency of the MultiQC output files cannot be verified will be skipped. Use this flag to disable this behaviour. Only recommended if you know why the check failed to begin with.",
-        default=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "--main_id_list",
-        metavar="FILE",
-        help="A file with two columns, where the first column is the Pandora Full individual ID and the second column is the Pandora Main individual ID. This is used to map Full IDs to Main IDs.",
-        default="/mnt/archgen/tools/helper_scripts/assets/pandora_tables/pandora_main_ind_id_list.txt",
-        required=False,
-    )
-    parser.add_argument(
-        "-H",
-        "--header",
-        help="Use human-readable header, instead of original MultiQC table header.",
-        default=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version="%(prog)s {}".format(VERSION),
-        help="Print the version and exit.",
-    )
-    args = parser.parse_args()
-
     ## Print version info to stderr on runtime
     print("## {}: {}".format(parser.prog, VERSION), file=sys.stderr)
 
@@ -423,7 +457,8 @@ def main():
     with open(args.input, "r") as f:
         individuals = [pH._remove_suffix(_) for _ in f.read().splitlines()]
         print(
-            "Found {} individuals in input file.".format(len(individuals)), file=sys.stderr
+            "Found {} individuals in input file.".format(len(individuals)),
+            file=sys.stderr,
         )
 
     ## Read list of main IDs
@@ -437,25 +472,28 @@ def main():
         mqc_data = "{}/{}/{}/{}/multiqc/multiqc_data/multiqc_data.json".format(
             args.root_output_path, args.analysis_type, pH.get_site_id(ind), ind
         )
-
         ## Infer path to MQC report
         report_path = mqc_data.replace(
             "multiqc_data/multiqc_data.json", "multiqc_report.html"
         )
-
         ## Infer path to nf-core/eager input TSV
         ##  Making the assumption that the eager_inputs and eager_outputs are in the same directory as the root_output_path
         tsv_path = "{}/../eager_inputs/{}/{}/{}/{}.tsv".format(
             args.root_output_path, args.analysis_type, pH.get_site_id(ind), ind, ind
         )
-
         ## Get stats
         try:
             ## First, ensure the MQC data are consistent with the report
             if files_are_consistent(mqc_data, report_path, args.skip_check):
-                collected_stats.update(get_individual_library_stats(mqc_data, args.analysis_type, main_id_dict))
+                collected_stats.update(
+                    get_individual_library_stats(
+                        mqc_data, args.analysis_type, main_id_dict
+                    )
+                )
                 ## Read in eager input TSV data and add to the collected stats
-                tsv_dat = get_eager_tsv_data(tsv_path, ["UDG_Treatment", "Strandedness"])
+                tsv_dat = get_eager_tsv_data(
+                    tsv_path, ["UDG_Treatment", "Strandedness"]
+                )
                 for library in tsv_dat:
                     collected_stats[library].update(tsv_dat[library])
             else:
@@ -473,34 +511,85 @@ def main():
             skip_count += 1
             continue
         print("Collected stats for individual {}.".format(ind), file=sys.stderr)
-    
+
     ## Collect mapdamage results where needed, and include read length distribution info in the output
     md_results_dirs = []
     for library in collected_stats:
         try:
-            if 'mapDamage_mqc-generalstats-mapdamage-mapdamage_3_Prime1' in collected_stats[library]:
-                md_results_dirs.append(
-                    '{}/{}/{}/{}/mapdamage/results_{}_rmdup'.format(
+            if (
+                "mapDamage_mqc-generalstats-mapdamage-mapdamage_3_Prime1"
+                in collected_stats[library]
+            ):
+                if pH.get_ind_id(library) in main_id_dict.keys():
+                    md_fn = "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
                         args.root_output_path,
                         args.analysis_type,
-                        pH.get_site_id(library),
-                        pH.get_ind_id(library),
-                        library
+                        pH.get_site_id(main_id_dict[pH.get_ind_id(library)]),
+                        main_id_dict[pH.get_ind_id(library)],
+                        library,
+                    )
+                    ## If the Main ID was added but the data has not been reprocessed with it, the mapdamage results will not exist in the main Id folder.
+                    ##  In that case, print a clear exception explaining the issue and asking that Thiseas gets contacted.
+                    if not os.path.exists(md_fn):
+                        warnings.warn(
+                            textwrap.indent(
+                                textwrap.dedent(
+                                    f"""
+                                    Mapdamage results for library {library} could not be found in the expected location: {md_fn}/. 
+                                    This likely means the data for individual {main_id_dict[pH.get_ind_id(library)]} needs to be reprocessed to include data filed under individual {pH.get_ind_id(library)}.
+                                    Please ask Thiseas to update the Autorun_eager results, if needed.
+                                    The existing results for individual {main_id_dict[pH.get_ind_id(library)]} will still be collected."""
+                                ),
+                                "    ",
+                            )
+                        )
+                        continue
+                    ## If the library belongs to an individual in the main ID list, collect its mapdamage results from within the main individual's results dir.
+                    md_results_dirs.append(md_fn)
+                else:
+                    ## Otherwise, collect from the individual's own results dir.
+                    md_results_dirs.append(
+                        "{}/{}/{}/{}/mapdamage/results_{}_rmdup".format(
+                            args.root_output_path,
+                            args.analysis_type,
+                            pH.get_site_id(library),
+                            pH.get_ind_id(library),
+                            library,
                         )
                     )
         except FileNotFoundError:
-            print("Warning: Could not generate read length distribution information for library: {} ".format(library), file=sys.stderr)
+            print(
+                "Warning: Could not generate read length distribution information for library: {} ".format(
+                    library
+                ),
+                file=sys.stderr,
+            )
             continue
     md_results = pyEager.collect_mapdamage_results(md_results_dirs)
     for result_folder_name in md_results:
         try:
             ## Take the basename of the file, then remove "results_" and "_rmdup" to get the library name
-            library = result_folder_name.split('/')[-1].replace("_rmdup", "").replace("results_", "")
-            collected_stats[library]['mean_read_length']    = md_results[result_folder_name]['summary_stats']['mean_readlength'].iloc[0]
-            collected_stats[library]['median_read_length']  = md_results[result_folder_name]['summary_stats']['median'].iloc[0]
-            collected_stats[library]['read_length_std_dev'] = md_results[result_folder_name]['summary_stats']['std'].iloc[0]
+            library = (
+                result_folder_name.split("/")[-1]
+                .replace("_rmdup", "")
+                .replace("results_", "")
+            )
+            collected_stats[library]["mean_read_length"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["mean_readlength"].iloc[0]
+            collected_stats[library]["median_read_length"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["median"].iloc[0]
+            collected_stats[library]["read_length_std_dev"] = md_results[
+                result_folder_name
+            ]["summary_stats"]["std"].iloc[0]
         except KeyError:
-            print("Warning: Could not incorporate read length distribution information for library: {} ".format(library), file=sys.stderr)
+            print(
+                "Warning: Could not incorporate read length distribution information for library: {} ".format(
+                    library
+                ),
+                file=sys.stderr,
+            )
             continue
 
     ## Print number of skipped individuals to stderr if any
@@ -546,6 +635,7 @@ def main():
             f"## Command: {parser.prog} -i {args.input} -o {args.output} -a {args.analysis_type}{flags}",
             file=f,
         )
+
 
 if __name__ == "__main__":
     main()
