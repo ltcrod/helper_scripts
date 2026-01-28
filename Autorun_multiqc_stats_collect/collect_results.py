@@ -30,7 +30,7 @@ except ImportError:
     )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.2"
+VERSION = "1.6.3"
 
 
 def get_individual_library_stats(
@@ -74,9 +74,26 @@ def get_individual_library_stats(
             #         library_stats[key] = data["report_saved_raw_data"]["multiqc_general_stats"][key]
             #     sample_libraries.append(key)  ## Keep track of library IDs for later
         else:
-            sample_stats[key] = data["report_saved_raw_data"]["multiqc_general_stats"][
-                key
-            ]
+            ## 28-01-2026: There are cases where the _udg flag is present at the sample level as well
+            ## We need to deal with this edge case as well, and put the results into the sample level.
+            if len(key.split("_udg")) > 1:
+                try:
+                    sample_stats[key.split("_udg")[0]].update(
+                        data["report_saved_raw_data"]["multiqc_general_stats"][key]
+                    )
+                except KeyError:
+                    sample_stats[key.split("_udg")[0]] = data["report_saved_raw_data"][
+                        "multiqc_general_stats"
+                    ][key]
+            else:
+                try:
+                    sample_stats[key].update(
+                        data["report_saved_raw_data"]["multiqc_general_stats"][key]
+                    )
+                except KeyError:
+                    sample_stats[key] = data["report_saved_raw_data"][
+                        "multiqc_general_stats"
+                    ][key]
     ## Add the same data type (analysis type) to all sample stats
     for key in sample_stats.keys():
         sample_stats[key]["Data_type"] = data_type
