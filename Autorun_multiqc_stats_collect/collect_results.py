@@ -652,7 +652,9 @@ def main():
             f"## Command: {parser.prog} -i {args.input} -o {args.output} -a {args.analysis_type}{flags}",
             file=f,
         )
+        ## Return collected datasets for easier debugging.
+        return (main_id_dict, collected_stats)
 
 
 if __name__ == "__main__":
-    main()
+    main_id_dict, collected_stats = main()
