@@ -5,6 +5,18 @@ All notable changes to collect_results.py will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.6.3 - 2026-04-06
+
+### Added
+
+### Fixed
+
+- Fixed an issue where the script would crash is certain results were at the sample level, instead of the library level. This happened when a udg merging step was needed, but no sample-level merge.
+- Fixed a bug where the SNP coverage stats were not picked up correctly in cases where nuclear contamination failed for a library.
+- Made debugging in an interactive session a bit easier.
+
+### Removed
+
 ## 1.6.2 - 2026-01-14
 
 ### Added

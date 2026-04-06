@@ -30,7 +30,7 @@ except ImportError:
     )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.2"
+VERSION = "1.6.3"
 
 
 def get_individual_library_stats(
@@ -74,9 +74,26 @@ def get_individual_library_stats(
             #         library_stats[key] = data["report_saved_raw_data"]["multiqc_general_stats"][key]
             #     sample_libraries.append(key)  ## Keep track of library IDs for later
         else:
-            sample_stats[key] = data["report_saved_raw_data"]["multiqc_general_stats"][
-                key
-            ]
+            ## 28-01-2026: There are cases where the _udg flag is present at the sample level as well
+            ## We need to deal with this edge case as well, and put the results into the sample level.
+            if len(key.split("_udg")) > 1:
+                try:
+                    sample_stats[key.split("_udg")[0]].update(
+                        data["report_saved_raw_data"]["multiqc_general_stats"][key]
+                    )
+                except KeyError:
+                    sample_stats[key.split("_udg")[0]] = data["report_saved_raw_data"][
+                        "multiqc_general_stats"
+                    ][key]
+            else:
+                try:
+                    sample_stats[key].update(
+                        data["report_saved_raw_data"]["multiqc_general_stats"][key]
+                    )
+                except KeyError:
+                    sample_stats[key] = data["report_saved_raw_data"][
+                        "multiqc_general_stats"
+                    ][key]
     ## Add the same data type (analysis type) to all sample stats
     for key in sample_stats.keys():
         sample_stats[key]["Data_type"] = data_type
@@ -206,17 +223,17 @@ def standardise_column_names(collected_stats):
         new_stats = collected_stats[library]
         new_stats.update(new_attributes)  ## Add all new attributed with NAs
         ## Deal with older versions of multiqc
-        try:
-            for name, old_name in old_names.items():
+        for name, old_name in old_names.items():
+            try:
                 new_stats[name] = new_stats[old_name]
-        except KeyError:
-            pass
+            except KeyError:
+                continue
         ## Deal with newer versions of multiqc
-        try:
-            for name, new_name in new_names.items():
+        for name, new_name in new_names.items():
+            try:
                 new_stats[name] = new_stats[new_name]
-        except KeyError:
-            pass
+            except KeyError:
+                continue
         # print("library:", library, "stats", new_stats, sep="\n")
         collected_stats[library] = new_stats
     return collected_stats
@@ -635,7 +652,9 @@ def main():
             f"## Command: {parser.prog} -i {args.input} -o {args.output} -a {args.analysis_type}{flags}",
             file=f,
         )
+        ## Return collected datasets for easier debugging.
+        return (main_id_dict, collected_stats)
 
 
 if __name__ == "__main__":
-    main()
+    main_id_dict, collected_stats = main()
