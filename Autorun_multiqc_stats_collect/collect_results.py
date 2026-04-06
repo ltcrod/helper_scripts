@@ -30,7 +30,7 @@ except ImportError:
     )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.3"
+VERSION = "1.6.3-beta2"
 
 
 def get_individual_library_stats(
@@ -223,17 +223,17 @@ def standardise_column_names(collected_stats):
         new_stats = collected_stats[library]
         new_stats.update(new_attributes)  ## Add all new attributed with NAs
         ## Deal with older versions of multiqc
-        try:
-            for name, old_name in old_names.items():
+        for name, old_name in old_names.items():
+            try:
                 new_stats[name] = new_stats[old_name]
-        except KeyError:
-            pass
+            except KeyError:
+                continue
         ## Deal with newer versions of multiqc
-        try:
-            for name, new_name in new_names.items():
+        for name, new_name in new_names.items():
+            try:
                 new_stats[name] = new_stats[new_name]
-        except KeyError:
-            pass
+            except KeyError:
+                continue
         # print("library:", library, "stats", new_stats, sep="\n")
         collected_stats[library] = new_stats
     return collected_stats
