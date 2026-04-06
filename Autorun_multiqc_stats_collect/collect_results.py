@@ -30,7 +30,7 @@ except ImportError:
     )
     import pyPandoraHelper as pH
 
-VERSION = "1.6.3-beta2"
+VERSION = "1.6.3"
 
 
 def get_individual_library_stats(
