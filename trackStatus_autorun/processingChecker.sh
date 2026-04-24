@@ -1,6 +1,6 @@
 #!bin/bash
 
-
+v="1.0.0"
 
 #get options
 sampleList=$1
@@ -9,6 +9,24 @@ autoResultsDirs=/mnt/archgen/Autorun/Results
 autoEagerDir=/mnt/archgen/Autorun_eager/eager_outputs
 IBDdir=/mnt/archgen/ibd_release/v13.0
 IBDversion=13.0
+
+#if $1 is -v or --version, print version and exit
+if [ "$sampleList" == "-v" ] || [ "$sampleList" == "--version" ]; then
+    echo "processingChecker.sh version ${v}"
+    exit 0
+fi
+
+#if $1 is "meow" print a cat and exit
+if [ "$sampleList" == "meow" ]; then
+echo "    /\_____/\ "
+echo "   /  o   o  \ "
+echo "  ( ==  ^  == ) "
+echo "   )         ( "
+echo "  (           ) "
+echo " ( (  )   (  ) ) "
+echo "(__(__)___(__)__) "
+exit 0
+fi
 
 #print help if sampleList is -h or $1 or $2 is empty
 if [ "$sampleList" == "-h" ] || [ -z "$sampleList" ] || [ -z "$tag" ]; then
